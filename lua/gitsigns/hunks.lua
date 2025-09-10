@@ -554,9 +554,26 @@ end
 
 --- @param hunk Gitsigns.Hunk.Hunk
 --- @param fileformat string
+--- @param context_before? string[]
+--- @param context_after? string[]
 --- @return Gitsigns.LineSpec[]
-function M.linespec_for_hunk(hunk, fileformat)
+function M.linespec_for_hunk(hunk, fileformat, context_before, context_after)
   local hls = {} --- @type [string, string|Gitsigns.HlMark[], string?][][]
+
+  -- Add context lines before the hunk
+  if context_before then
+    for _, l in ipairs(context_before) do
+      if fileformat == 'dos' then
+        l = l:gsub('\r$', '') --[[@as string]]
+      end
+      hls[#hls + 1] = {
+        {
+          ' ' .. l,
+          'Normal'
+        },
+      }
+    end
+  end
 
   local removed, added = hunk.removed.lines, hunk.added.lines
 
@@ -580,12 +597,29 @@ function M.linespec_for_hunk(hunk, fileformat)
     end
   end
 
+  -- Add context lines after the hunk  
+  if context_after then
+    for _, l in ipairs(context_after) do
+      if fileformat == 'dos' then
+        l = l:gsub('\r$', '') --[[@as string]]
+      end
+      hls[#hls + 1] = {
+        {
+          ' ' .. l,
+          'Normal'
+        },
+      }
+    end
+  end
+
   if config.diff_opts.internal then
     local removed_regions, added_regions =
       require('gitsigns.diff_int').run_word_diff(removed, added)
 
+    local context_offset = context_before and #context_before or 0
+
     for _, region in ipairs(removed_regions) do
-      local i = region[1]
+      local i = context_offset + region[1]
       local hlm = assert(assert(hls[i])[1])[2]
       hlm[#hlm + 1] = {
         start_row = 0,
@@ -596,7 +630,7 @@ function M.linespec_for_hunk(hunk, fileformat)
     end
 
     for _, region in ipairs(added_regions) do
-      local i = hunk.removed.count + region[1]
+      local i = context_offset + hunk.removed.count + region[1]
       local hlm = assert(assert(hls[i])[1])[2]
       hlm[#hlm + 1] = {
         start_row = 0,

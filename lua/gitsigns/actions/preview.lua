@@ -202,6 +202,40 @@ local function noautocmd(f)
   end
 end
 
+--- Get context lines around a hunk
+--- @param bufnr integer
+--- @param hunk Gitsigns.Hunk.Hunk
+--- @param context_size integer
+--- @return string[]?, string[]? context_before, context_after
+local function get_hunk_context(bufnr, hunk, context_size)
+  if context_size == 0 then
+    return nil, nil
+  end
+
+  local total_lines = api.nvim_buf_line_count(bufnr)
+  
+  -- Get context before the hunk
+  local context_before = {}
+  local before_start = math.max(1, hunk.added.start - context_size)
+  local before_end = math.max(0, hunk.added.start - 1)
+  
+  if before_end >= before_start then
+    context_before = api.nvim_buf_get_lines(bufnr, before_start - 1, before_end, false)
+  end
+  
+  -- Get context after the hunk
+  local context_after = {}
+  local after_start = hunk.added.start + hunk.added.count
+  local after_end = math.min(total_lines, after_start + context_size - 1)
+  
+  if after_end >= after_start then
+    context_after = api.nvim_buf_get_lines(bufnr, after_start, after_end + 1, false)
+  end
+  
+  return #context_before > 0 and context_before or nil,
+         #context_after > 0 and context_after or nil
+end
+
 --- Preview the hunk at the cursor position in a floating
 --- window. If the preview is already open, calling this
 --- will cause the window to get focus.
@@ -224,11 +258,14 @@ M.preview_hunk = noautocmd(function()
     return
   end
 
+  -- Get context lines if context_size > 0
+  local context_before, context_after = get_hunk_context(bufnr, hunk, config.context_size)
+
   --- @type Gitsigns.LineSpec[]
   local preview_linespec = {
     { { ('Hunk %d of %d'):format(index, #bcache.hunks), 'Title' } },
   }
-  vim.list_extend(preview_linespec, Hunks.linespec_for_hunk(hunk, vim.bo[bufnr].fileformat))
+  vim.list_extend(preview_linespec, Hunks.linespec_for_hunk(hunk, vim.bo[bufnr].fileformat, context_before, context_after))
 
   popup.create(preview_linespec, config.preview_config, 'hunk')
 end)
