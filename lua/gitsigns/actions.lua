@@ -241,7 +241,7 @@ M.stage_hunk = mk_repeatable(async.create(2, function(range, opts)
     return
   end
 
-  bcache.git_obj.lock:with(function()
+  bcache.git_obj:lock(function()
     local hunk = bcache:get_hunk(range, opts.greedy ~= false, false)
 
     local invert = false
@@ -364,7 +364,7 @@ M.undo_stage_hunk = async.create(0, function()
     return
   end
 
-  bcache.git_obj.lock:with(function()
+  bcache.git_obj:lock(function()
     local hunk = table.remove(bcache.staged_diffs)
     if not hunk then
       print('No hunks to undo')
@@ -393,7 +393,7 @@ M.stage_buffer = async.create(0, function()
     return
   end
 
-  bcache.git_obj.lock:with(function()
+  bcache.git_obj:lock(function()
     -- Only process files with existing hunks
     local hunks = bcache.hunks
     if not hunks or #hunks == 0 then
@@ -434,7 +434,7 @@ M.reset_buffer_index = async.create(0, function()
     return
   end
 
-  bcache.git_obj.lock:with(function()
+  bcache.git_obj:lock(function()
     -- `bcache.staged_diffs` won't contain staged changes outside of current
     -- neovim session so signs added from this unstage won't be complete They will
     -- however be fixed by gitdir watcher and properly updated We should implement
@@ -666,23 +666,29 @@ end
 --- Attributes: ~
 ---     {async}
 ---
---- Examples: >vim
----   " Change base to 1 commit behind head
----   :lua require('gitsigns').change_base('HEAD~1')
+--- Examples: >lua
+---   -- Change base to 1 commit behind head
+---   require('gitsigns').change_base('HEAD~1')
+---   -- :Gitsigns change_base HEAD~1
 ---
----   " Also works using the Gitsigns command
+---   -- Also works using the Gitsigns command
 ---   :Gitsigns change_base HEAD~1
 ---
----   " Other variations
----   :Gitsigns change_base ~1
----   :Gitsigns change_base ~
----   :Gitsigns change_base ^
+---   -- Other variations
+---   require('gitsigns').change_base('~1')
+---   -- :Gitsigns change_base ~1
+---   require('gitsigns').change_base('~')
+---   -- :Gitsigns change_base ~
+---   require('gitsigns').change_base('^')
+---   -- :Gitsigns change_base ^
 ---
----   " Commits work too
----   :Gitsigns change_base 92eb3dd
+---   -- Commits work too
+---   require('gitsigns').change_base('92eb3dd')
+---   -- :Gitsigns change_base 92eb3dd
 ---
----   " Revert to original base
----   :Gitsigns change_base
+---   -- Revert to original base
+---   require('gitsigns').change_base()
+---   -- :Gitsigns change_base
 --- <
 ---
 --- For a more complete list of ways to specify bases, see
@@ -734,12 +740,14 @@ end
 --- If {base} is the index, then the opened buffer is editable and
 --- any written changes will update the index accordingly.
 ---
---- Examples: >vim
----   " Diff against the index
----   :Gitsigns diffthis
+--- Examples: >lua
+---   -- Diff against the index
+---   require('gitsigns').diffthis()
+---   -- :Gitsigns diffthis
 ---
----   " Diff against the last commit
----   :Gitsigns diffthis ~1
+---   -- Diff against the last commit
+---   require('gitsigns').diffthis('~1')
+---   -- :Gitsigns diffthis ~1
 --- <
 ---
 --- For a more complete list of ways to specify bases, see
@@ -807,12 +815,14 @@ CP.diffthis = complete_heads
 --- If {base} is the index, then the opened buffer is editable and
 --- any written changes will update the index accordingly.
 ---
---- Examples: >vim
----   " View the index version of the file
----   :Gitsigns show
+--- Examples: >lua
+---   -- View the index version of the file
+---   require('gitsigns').show()
+---   -- :Gitsigns show
 ---
----   " View revision of file in the last commit
----   :Gitsigns show ~1
+---   -- View revision of file in the last commit
+---   require('gitsigns').show('~1')
+---   -- :Gitsigns show ~1
 --- <
 ---
 --- For a more complete list of ways to specify bases, see
